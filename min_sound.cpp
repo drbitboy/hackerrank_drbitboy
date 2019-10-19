@@ -2,6 +2,7 @@
 using namespace std;
 
 static bool do_print = getenv("DO_PRINT") ? true : false;
+static bool do_show_result = getenv("SHOW_RESULT") ? true : false;
 
 /*
  * Complete the 'minSound' function below.
@@ -182,7 +183,7 @@ public:
         vpempty.push_back(pspkr = vvgiter->back());             // Copy last pointer in vector to empty vector, ...
         vvgiter->pop_back();                                    // ... and pop that pointer off multi-pSPKR vector
         pspkr->set_posn(first_empty);                           // Set the pointed-to-SPKR's position
-        while (2 > vvpspkrgroups[first_multi].size()) {         // If the vector at first_empty no longer has multiple pointers ...
+        while (2 > vvpspkrgroups[first_multi].size()) {         // If the vector at first_multi no longer has multiple pointers ...
           if (N < ++first_multi) break;                         // ... increment first_multi to find the next one that does
         }
         if (do_print) {
@@ -249,6 +250,11 @@ public:
       }
       vpempty.push_back(pspkr);                                 // Copy last pointer in vector to empty vector, ...
       vvgiter->pop_back();                                      // ... and pop that pointer off multi-pSPKR vector
+      if (pspkr->posn == first_multi) {
+        while (2 > vvpspkrgroups[first_multi].size()) {         // If the vector at first_multi no longer has multiple pointers ...
+          if (N < ++first_multi) break;                         // ... increment first_multi to find the next one that does
+        }
+      }
       pspkr->set_posn(first_empty);                             // Set the pointer position
       sound_total += (delta_sound = pspkr->calc_sound());       // Adjust total
       if (delta_sound) vnonzeros.push_back(pspkr);              // Save this pointer if it increased total sound
@@ -296,8 +302,27 @@ public:
       }
     }
 
-    if (do_print) {
-      cout << sound_total << "=sound_total\n";
+    if (do_show_result) {
+      cout << "#output_position  speaker_count_at_posn  original_position  threshold_position  strength  sound\n";
+      for (int i = 1; i<(N+1); ++i) {
+        cout << i
+             << "  " << vvpspkrgroups[i].size()
+             ;
+        flush(cout);
+        //assert(1==vvpspkrgroups[i].size());
+        pspkr = vvpspkrgroups[i][0];
+        cout << "  " << (1 + (pspkr - pspkrs))
+             << "  " << pspkr->thr
+             << "  " << pspkr->str
+             << "  " << pspkr->calc_sound()
+             << "\n";
+        flush(cout);
+      }
+      cout << "#output_position  original_position  threshold_position  strength  sound\n";
+    }
+
+    if (do_print || do_show_result) {
+      cout << "#" << sound_total << "=sound_total\n";
       flush(cout);
     }
 

@@ -49,6 +49,20 @@ main() {
     cout << (vii==vint.begin() ? "" : " ") << *vii;
   }
   cout << " = vint after\n";
+
+  typedef int *PINT, **PPINT;
+
+  PINT pint = new int[2];
+  PPINT ppint = new PINT[2];
+
+  cout << (100 + (&pint[1] - &pint[0]))
+       << "," << (((long)(pint+1)) - ((long)pint))
+       << "," << (sizeof pint[0])
+       << "\n";
+  cout << (100 + (&ppint[1] - &ppint[0]))
+       << "," << (((long)(ppint+1)) - ((long)ppint))
+       << "," << (sizeof ppint[0])
+       << "\n";
   
   cout << "done\n";
   return 0;
