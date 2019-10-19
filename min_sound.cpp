@@ -1,17 +1,18 @@
+////////////////////////////////////////////////////////////////////////
+// Overly-complicated, but possibly faster, solution to Hackerrank
+// problem:  Sound System Testing
+//
+// cf. https://www.hackerrank.com/contests/hackerrank-women-technologists-codesprint-2019/challenges/sound-system-testing
+//
+// See editor.cpp and editor_btc.cpp in this repo for simpler solutions
+////////////////////////////////////////////////////////////////////////
+
 #include <bits/stdc++.h>
 using namespace std;
 
 static bool do_print = getenv("DO_PRINT") ? true : false;
 static bool do_show_result = getenv("SHOW_RESULT") ? true : false;
 
-/*
- * Complete the 'minSound' function below.
- *
- * The function is expected to return a LONG_INTEGER.
- * The function accepts following parameters:
- *  1. INTEGER_ARRAY strengths
- *  2. INTEGER_ARRAY threshold_dist
- */
 
 ////////////////////////////////////////////////////////////////////////
 class SPKR {  // Class describing one speaker
