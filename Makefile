@@ -1,6 +1,6 @@
 CXXFLAGS=-O0 -g
 
-TARGETS=min_sound
+TARGETS=min_sound editor editor_btc
 
 all: $(TARGETS)
 

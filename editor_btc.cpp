@@ -6,7 +6,7 @@
 // Example:
 //
 //     for i in input/input??.txt ; do ./editor_btc $i --test=3 ; done > x.x
-//     cat output/output??.txt | diff x.x - | grep -q . || echo Success
+//     cat output/output??.txt | diff x.x - && echo Success || echo Failure
 //
 ///////////////////////////////////////////////////////////////////////
 
@@ -36,11 +36,7 @@ pRESULT result = new RESULT;
 
     set<int> pos;
 
-#   if 0
-    for (int i = 1; i <= result->n; i++) { pos.insert(result->n - i); }
-#   else
-    for (int i = 1; i < result->n; i++) { pos.insert(i); }
-#   endif
+    for (int i = 0; i < result->n; i++) { pos.insert(i); }
 
     if (do_sort) {
         sort(all.begin(), all.end());
