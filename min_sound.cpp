@@ -12,6 +12,7 @@ static bool do_print = getenv("DO_PRINT") ? true : false;
  *  2. INTEGER_ARRAY threshold_dist
  */
 
+////////////////////////////////////////////////////////////////////////
 class SPKR {  // Class describing one speaker
 public:
   int str;    // Strength
@@ -25,7 +26,7 @@ public:
   long long calc_sound() { return posn > thr ? 0L : (long long)str; }
   void print14(ostream& out) {
     char s99[99];
-    sprintf(s99,"|%-4d,%-4d,%-4d", thr, str, posn);
+    sprintf(s99,"|%-6d,%-7d", thr, str%10000000);
     out << s99;
   }
 };
@@ -33,6 +34,7 @@ typedef SPKR *pSPKR, **ppSPKR;
 typedef vector<pSPKR> vpSPKR;
 typedef vector<vpSPKR> vvpSPKR;
 
+////////////////////////////////////////////////////////////////////////
 // Comparison function for sorting one vector<pSPKR> group (of many in vvpSPKR)
 bool compar_pspkr(pSPKR p1, pSPKR p2) {
   if (p1->str < p2->str) return false;  // Lesser strength sorts last
@@ -45,7 +47,8 @@ bool compar_pspkr(pSPKR p1, pSPKR p2) {
   return (p1 > p2);                     // Greater pointer sorts first
 }
 
-// Same comparison, for qsort'ing (ppSPKR)SPKRS.ppspkrlist 
+////////////////////////////////////////////////////////////////////////
+// Same comparison, for qsort'ing (ppSPKR)SPKRS.ppspkrlist
 int qcompar_pspkr(const void* pp1, const void* pp2) {
   pSPKR p1 = *((ppSPKR)pp1);
   pSPKR p2 = *((ppSPKR)pp2);
@@ -57,12 +60,12 @@ int qcompar_pspkr(const void* pp1, const void* pp2) {
   // Equal thresholds and strengths:
   // - use pointers to break ties
   if (p1 > p2) return -1;           // Greater pointer sorts first
-  if (p1 < p2) return 1; 
+  if (p1 < p2) return 1;
   return 0;                         // N.B. WSNBATGH
 }
 
-// 
-class SPKRS {
+////////////////////////////////////////////////////////////////////////
+class SPKRS {             // Class containing all speakers
 public:
   pSPKR pspkrs;           // Pointer to original list of SPKRs
   pSPKR pspkrsend;        // Pointer to end of SPKR list
@@ -82,9 +85,9 @@ public:
     for (pSPKR p=pspkrs; p<pspkrsend; ++p) *(ppspkrlistend++) = p;
   }
   ~SPKRS() { delete[] pspkrs; delete[] ppspkrlist; }
-  
+
   long long min_sound() {
-    
+
     // Local pointers and an int
     pSPKR pspkr;
     pSPKR pspkr1;
@@ -106,17 +109,17 @@ public:
     ppspkr = ppspkrlist;      // Initialize local ppSPKR pointer to start of list
 
     for (pspkr=pspkrs; pspkr<pspkrsend; ++pspkr) {
-      
+
       // Store pSPKR pointer intoto ppSPKR list
       *(ppspkr++) = pspkr;
 
       // Set each SPKR position to one past its threshold position,
       // and then append that SPKR's pointer to that position's group vector
       vvpspkrgroups[iposn = pspkr->set_ptp1(N)].push_back(pspkr);
-      
+
       // Optionally adjust position of left-most multi-pSPKR group on addition of second item
       if (iposn < first_multi && 2 == vvpspkrgroups[iposn].size()) first_multi = iposn;
-      
+
       // If this was the position of the left-most empty group, find the position of the next one
       if (iposn == first_empty) { while (vvpspkrgroups[++first_empty].size() && first_empty < N) ; }
     }
@@ -124,14 +127,14 @@ public:
     // Sort all-pSPKR list by decreasing strength, increasing threshold position,
     // and decreasing pointer - they will be moved to the left in that order
     qsort(ppspkrlist,N,sizeof(pSPKR),qcompar_pspkr);
-    
+
     // Sort per-position pointer groups
-    for (iposn = 0; iposn < N; ++iposn) {
+    for (iposn = 0; iposn < (N+1); ++iposn) {
       if (vvpspkrgroups[iposn].size() > 1) {
         sort(vvpspkrgroups[iposn].begin(), vvpspkrgroups[iposn].end(),compar_pspkr);
       }
     }
-    
+
     // Setup complete:
     // 1. Each pSPKR is in a group vector one position beyond its effective threshold position (see 1.2.1)
     //    1.1. So total sound is zero at present
@@ -168,7 +171,7 @@ public:
              ;
         printout(cout, ppspkrlast);
       }
-      
+
       if (first_empty > N) break;                               // No empty positions are left; terminate algorithm
 
       // Algorithm i:  free
@@ -182,10 +185,13 @@ public:
         while (2 > vvpspkrgroups[first_multi].size()) {         // If the vector at first_empty no longer has multiple pointers ...
           if (N < ++first_multi) break;                         // ... increment first_multi to find the next one that does
         }
-        if (do_print) cout << "free\n";
+        if (do_print) {
+          cout << "free\n";
+          flush(cout);
+        }
         continue;                                               // This was a right-shift, there is no change in sound total; continue
       }
-      
+
       // Algorithm ii:  inevitable
       // Take pointer from position (N+1), which pointer
       // must end up at or below its threshold anyway.
@@ -203,10 +209,11 @@ public:
                << "," << pspkr->thr
                << "," << pspkr->posn
                << "\n";
+          flush(cout);
         }
         continue;                                               // Continue
       }
-      
+
       // Algorithm iii:  greedy
       // Use a pointer from end of ppspkrlist, which points
       // to the right-most, lowest-strength SPKR.
@@ -215,7 +222,29 @@ public:
         if (pspkr->posn > first_empty) break;                   // Don't use pointer unless its position is right of first empty
       }
       vvgiter = vvpspkrgroups.begin() + pspkr->posn;            // Use last item on this vector
+      if (do_print) {
+        cout << "greedy"
+             << "," << vvgiter->size() << "=vvgiter->size()"
+             << "," << pspkr->str << "=pspkr->str"
+             << "," << pspkr->thr << "=pspkr->thr"
+             << "," << pspkr->posn << "=pspkr->posn(before)"
+             ;
+        flush(cout);
+      }
       if (pspkr!=vvgiter->back()) {
+        cout << "\n";
+        for (int ivvg=0; ivvg<vvgiter->size(); ++ivvg) {
+          pSPKR p = vvgiter->at(ivvg);
+          cout << "vvgiter->at(" << ivvg << ")="
+             << "[" << p << "=p"
+             << "," << p->str << "=p->str"
+             << "," << p->thr << "=p->thr"
+             << "," << p->posn << "=p->posn"
+             << "]\n"
+             ;
+
+        }
+        flush(cout);
         assert(pspkr==vvgiter->back());                         // Sanity check
       }
       vpempty.push_back(pspkr);                                 // Copy last pointer in vector to empty vector, ...
@@ -224,13 +253,11 @@ public:
       sound_total += (delta_sound = pspkr->calc_sound());       // Adjust total
       if (delta_sound) vnonzeros.push_back(pspkr);              // Save this pointer if it increased total sound
       if (do_print) {
-        cout << "greedy,+"
-             << delta_sound
-             << "," << sound_total
-             << "," << pspkr->str
-             << "," << pspkr->thr
-             << "," << pspkr->posn
+        cout << "," << pspkr->posn << "=pspkr->posn(after)"
+             << ",+" << delta_sound << "=delta_sound"
+             << "," << sound_total << "=sound_total"
              << "\n";
+        flush(cout);
       }
 
     } // while (1) (algorithm)
@@ -254,8 +281,9 @@ public:
       int prevposn = pspkr->posn;                // Save the current position (posn) of that last pSPKR
       pspkr->set_posn(vnonzeros[0]->posn);       // Set that last pSPKR's posn to that of the first non-zero pSPKR
       if (do_print) {
-        cout << prevposn << "=prevposn\n"; flush(cout);
-        cout << pspkr->posn << "=currposn\n"; flush(cout);
+        cout << prevposn << "=prevposn\n";
+        cout << pspkr->posn << "=currposn\n";
+        flush(cout);
       }
       while (rvnzit != vnonzeros.rend()) {       // Continue moving down non-zero list
         int currposn = (pspkr = *rvnzit)->posn;  // Get the next pSPKR and save its posn
@@ -268,8 +296,13 @@ public:
       }
     }
 
+    if (do_print) {
+      cout << sound_total << "=sound_total\n";
+      flush(cout);
+    }
+
     return sound_total;
-    
+
     // Heh
     return N + ((N&1) ? N : 0);
   }
@@ -277,6 +310,8 @@ public:
   // Printout for debugging
   void printout(ostream& out, ppSPKR ppspkrlast) {
     int NN = N<11 ? N+2 : 11;
+
+    int ivprint1st = (false && N==199923 ? 199460 : (N+1)) - (NN-1) ;
 
     char s99[99];
 
@@ -287,19 +322,21 @@ public:
 
     sprintf(s99,"r\\c "); C;
     for (int i=1; i<NN; ++i) {
-      sprintf(s99,"|%-4d,%-9d", i, vvpspkrgroups[i].size()); C;
+      int Nmi = ivprint1st + i;
+      sprintf(s99,"|%-6d,%-7d", Nmi, vvpspkrgroups[Nmi].size()); C;
     }
     sprintf(s99,"|%-14s", "greedy"); C;
     nlf;
 
     pSPKR ps;
 
-    for (int row=0; row < N; ++row) {
+    for (int row=0; row < (N<NN ? N : NN); ++row) {
       sprintf(s99,"%-4d", row); C;
       for (int i=1; i<NN; ++i) {
       int iout;
-        if (row < vvpspkrgroups[i].size()) {
-          vvpspkrgroups[i][row]->print14(out);
+      int Nmi = ivprint1st + i;
+        if (row < vvpspkrgroups[Nmi].size()) {
+          vvpspkrgroups[Nmi][row]->print14(out);
         } else {
           sprintf(s99,"|%-14s", " "); C;
         }
