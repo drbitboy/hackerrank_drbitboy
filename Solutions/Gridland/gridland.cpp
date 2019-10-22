@@ -6,130 +6,71 @@ static bool do_debug = getenv("BTCDEBUG") ? true : false;
 
 #define chterm '\0'
 
-class Htring {              // Hashed string
+typedef class Onec *pOnec, **ppOnec;
+
+class Onec {
 public:
-  char* pstring;            // The string itself
-  size_t L;                 // String length
-  long long hash_value;
-  long long p_pow;
+  int bits;
+  pOnec ponecs[26];
+  Onec() { }
+  ~Onec() { };
+}; // class Onec;
 
-  Htring() : pstring(0), L(0), hash_value(0), p_pow(1) { };
+class AggOnec {
+public:
+# if 1
+  const int n_per_alloc = 10000000;
+# else
+  // Testing
+  const int n_per_alloc = 10;
+# endif
+  vector<pOnec> vpo;
+  pOnec pNext;
+  pOnec pEnd;
+  ~AggOnec() {
+    for (int i; i<vpo.size(); ++i) { delete[] vpo[i]; }
+  }
+  AggOnec() {
+    vpo.clear();
+    vpo.reserve(100);
+    add_10M();
+  }
+  void add_10M() {
+    pNext = new Onec[n_per_alloc];
+    vpo.push_back(pNext);
+    pEnd = pNext + n_per_alloc;
+  }
+}; // class Onec
 
-  long long compute_hash(char* pstring, size_t L, long long hash_value=0LL) {
-  const long long p = 31LL;
-  const long long m = 1000000009LL;
-    for (char* s = pstring+L; s-- > pstring; ) {
-      hash_value = (hash_value + ((*s & 0x01f) * p_pow)) % m;
-      p_pow = (p_pow * p) % m;
+typedef class City *pCity, **ppCity;
+class City {
+public:
+  pOnec ponec;
+  int bit;
+  char i5;
+  City() { };
+  ~City() { }
+  void set_char(char c) { i5 = c - 'a' ; bit = 1<<i5; }
+  bool set_ponec(pOnec pOnec_) {
+    // Return true if Once already has this char
+    ponec = ponec_;
+    bool bool_return;
+    if (! (bool_return = (ponec->bits & bit) ? true : false)) {
+      ponec->bits |= bit;
     }
-    return hash_value;
+    return bool_return;
   }
+}; // class City
 
-  Htring(const char* pin, size_t L_) : L(L_), p_pow(1) {
-    pstring = new char(L+1);
-    memcpy(pstring, pin, L);
-    pstring[L] = chterm;
-    hash_value = compute_hash(pstring, L);
-  }
-
-  Htring(const Htring& huffix, const char* prefix = 0, size_t L_ = 0, bool reverse = false) {
-
-    L = L_ + huffix.L;
-
-    if (L) pstring = new char(L + 1);
-    else   pstring = 0;
-
-    if (L_) memcpy(pstring, prefix, L_);
-
-    if (huffix.L && reverse) {
-
-      char* thisp = pstring + L_;
-      for (char* ph = huffix.pstring+huffix.L; ph-- > huffix.pstring; ) {
-        *(thisp++) = *ph;
-      }
-      p_pow = 1;
-
-    } else if (huffix.L) {
-      memcpy(pstring+L_, huffix.pstring, huffix.L);
-      p_pow = huffix.p_pow;
-
-    } else {
-      p_pow = 1;
-    }
-
-    if (L) pstring[L] = chterm;
-
-    if (reverse) {
-      hash_value = compute_hash(pstring, L);
-    } else {
-      hash_value = compute_hash(pstring, L_, huffix.hash_value);
-    }
-  }
-
-  ~Htring() { if (pstring) { delete[] pstring; } }
-
-  Htring& operator=(const Htring& htr) {
-    L = htr.L;
-    hash_value = htr.hash_value;
-    if (L) {
-      pstring = new char(L+1);
-      pstring[L] = chterm;
-    } else {
-      pstring = 0;
-    }
-    return *this;
-  }
-};
-
-struct HtringCompare {
-  bool operator()(const Htring left, const Htring right) {
-    if (left.hash_value < right.hash_value) return true;
-    if (left.hash_value > right.hash_value) return false;
-
-    // To here, hashes are the same; compare strings
-    // - First check for empty strings
-
-    if (!left.L && !right.L) return false;
-    if (!left.L) return true;              // Shorter string sorts first
-    if (!right.L) return false;            // Shorter string sorts first
-
-    // Neither string is empty
-
-    int maxL = left.L > right.L ? left.L : right.L;
-    return strncmp(left.pstring, right.pstring, maxL) < 0; 
-  }
-};
-
-ostream& operator<<(ostream& out, const Htring& htr) {
-  out << "Htring[" << htr.hash_value
-      << "," << htr.pstring
-      << "]";
-  return out;
-}
-
-typedef set<Htring, HtringCompare> Hset;
-typedef Hset::iterator HsetIT;
-typedef map<char*, Hset> MP;
-typedef MP::iterator MPIT;
 
 class Gridland {
 public:
-  MP warehouse;
-  Hset the_set;
+  AggOnec aggonec;
   int L;
   int twoL;
 
-  Gridland() { }
+  Gridland() : aggonec(AggOnec()) { }
   ~Gridland() { }
-
-  //////////////////////////////////////////////////////////////////////
-  // Append current string to Hset the_set
-  // - check the reverse versions later
-  //////////////////////////////////////////////////////////////////////
-  void add_to_the_set(Htring htr) {
-    //cout << htr << " added\n";
-    the_set.insert(htr);
-  }
 
   void sub_solve(string* pss1, string* pss2) {
     char* s1 = (char*) pss1->c_str();
@@ -230,26 +171,9 @@ public:
   } // Gridland.sub_solve(...)
 
   int solve(string& s1, string& s2) {
-    //the_vec.reserve(723604);
-    the_set.clear();
-    warehouse.clear();
     L = s1.length();
     twoL = L << 1;
     sub_solve(&s1, &s2);
-
-    int glcount = the_set.size();
-
-    HsetIT thend = the_set.end();
-
-    for (HsetIT it = the_set.begin(); it != thend; ++it) {
-
-      // Create Htring with reversed string, try to find it in the_set
-      if (the_set.find(Htring(*it, (char*)0, 0, true)) == thend) {
-
-        // If reversed Htring is not in the set, increment the count
-        ++glcount;
-      }
-    }
 
     return glcount;
 
