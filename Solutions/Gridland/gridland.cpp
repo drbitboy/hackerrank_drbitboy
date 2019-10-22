@@ -6,40 +6,64 @@ static bool do_debug = getenv("BTCDEBUG") ? true : false;
 
 #define chterm '\0'
 
-long long compute_hash(char* pstring, size_t L, long long hash_value=0LL) {
-const long long p = 31LL;
-const long long m = 1000000009LL;
-long long p_pow = 1;
-  for (char* s = pstring+L; s-- > pstring; ) {
-    hash_value = (hash_value + ((*s & 0x01f) * p_pow)) % m;
-    p_pow = (p_pow * p) % m;
-  }
-  return hash_value;
-}
-
 class Htring {              // Hashed string
 public:
   char* pstring;            // The string itself
   size_t L;                 // String length
   long long hash_value;
+  long long p_pow;
 
-  Htring() : pstring(0), L(0), hash_value(0) { };
+  Htring() : pstring(0), L(0), hash_value(0), p_pow(1) { };
 
-  Htring(const char* pin, size_t L_) : L(L_) {
+  long long compute_hash(char* pstring, size_t L, long long hash_value=0LL) {
+  const long long p = 31LL;
+  const long long m = 1000000009LL;
+    for (char* s = pstring+L; s-- > pstring; ) {
+      hash_value = (hash_value + ((*s & 0x01f) * p_pow)) % m;
+      p_pow = (p_pow * p) % m;
+    }
+    return hash_value;
+  }
+
+  Htring(const char* pin, size_t L_) : L(L_), p_pow(1) {
     pstring = new char(L+1);
     memcpy(pstring, pin, L);
     pstring[L] = chterm;
     hash_value = compute_hash(pstring, L);
-  };
+  }
 
-  Htring(const Htring& huffix, const char* prefix = 0, size_t L_ = 0) {
+  Htring(const Htring& huffix, const char* prefix = 0, size_t L_ = 0, bool reverse = false) {
+
     L = L_ + huffix.L;
+
     if (L) pstring = new char(L + 1);
     else   pstring = 0;
+
     if (L_) memcpy(pstring, prefix, L_);
-    if (huffix.L) { memcpy(pstring+L_, huffix.pstring, huffix.L); }
+
+    if (huffix.L && reverse) {
+
+      char* thisp = pstring + L_;
+      for (char* ph = huffix.pstring+huffix.L; ph-- > huffix.pstring; ) {
+        *(thisp++) = *ph;
+      }
+      p_pow = 1;
+
+    } else if (huffix.L) {
+      memcpy(pstring+L_, huffix.pstring, huffix.L);
+      p_pow = huffix.p_pow;
+
+    } else {
+      p_pow = 1;
+    }
+
     if (L) pstring[L] = chterm;
-    hash_value = compute_hash(pstring, L_, huffix.hash_value);
+
+    if (reverse) {
+      hash_value = compute_hash(pstring, L);
+    } else {
+      hash_value = compute_hash(pstring, L_, huffix.hash_value);
+    }
   }
 
   ~Htring() { if (pstring) { delete[] pstring; } }
@@ -76,6 +100,13 @@ struct HtringCompare {
   }
 };
 
+ostream& operator<<(ostream& out, const Htring& htr) {
+  out << "Htring[" << htr.hash_value
+      << "," << htr.pstring
+      << "]";
+  return out;
+}
+
 typedef set<Htring, HtringCompare> Hset;
 typedef Hset::iterator HsetIT;
 #if 0
@@ -100,8 +131,9 @@ public:
   //////////////////////////////////////////////////////////////////////
   // Append current string, plus its reverse, to Hset the_set
   //////////////////////////////////////////////////////////////////////
-  void add_to_the_set(Htring ssofar) {
-    the_set.insert(ssofar);
+  void add_to_the_set(Htring htr) {
+    //cout << htr << " added\n";
+    the_set.insert(htr);
   }
 
   void sub_solve(string* pss1, string* pss2) {
@@ -215,10 +247,9 @@ public:
     HsetIT thend = the_set.end();
 
     for (HsetIT it = the_set.begin(); it != thend; ++it) {
-      //if (the_set.find(string(it->rbegin(), it->rend()).c_str(), it->length()) == thend) {
-      //  ++glcount;
-      //}
-      ;
+      if (the_set.find(Htring(*it, (char*)0, 0, true)) == thend) {
+        ++glcount;
+      }
     }
 
     return glcount;
