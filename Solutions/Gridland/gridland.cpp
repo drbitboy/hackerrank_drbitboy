@@ -27,7 +27,9 @@ public:
   //////////////////////////////////////////////////////////////////////
   void add_to_the_vec(string ssofar) {
     the_vec.push_back(ssofar);
+    if (do_debug) cout << "[" << the_vec[the_vec.size()-1] << "]" << the_vec.size();
     the_vec.push_back(string(ssofar.rbegin(),ssofar.rend()));
+    if (do_debug) cout << "[" << the_vec[the_vec.size()-1] << "]" << the_vec.size() << "\n";
   }
 
   void sub_solve(string* pss1, string* pss2) {
@@ -36,14 +38,18 @@ public:
     char* ps1 = s1 + L;
     char* ps2 = s2 + L;
 
-    string loop12 = string(pss1->rbegin(), pss1->rend()) + (*pss2);
-    string loop21 = string(pss2->rbegin(), pss2->rend()) + (*pss1);
+    string loop12 = (*pss2) + string(pss1->rbegin(), pss1->rend()) + (*pss2);
+    string loop21 = (*pss1) + string(pss2->rbegin(), pss2->rend()) + (*pss1);
 
-    char* ploop12 = (char*) loop12.c_str();
-    char* ploop21 = (char*) loop21.c_str();
+    char* ploop12 = L + (char*) loop12.c_str();
+    char* ploop21 = L + (char*) loop21.c_str();
+    char* ploop12_rev = ploop21;
+    char* ploop21_rev = ploop12;
 
     MPIT whit1;
     MPIT whit2;
+    MPIT new_whit1;
+    MPIT new_whit2;
 
     if ((whit1 = warehouse.find(ps1)) == warehouse.end()) {
       warehouse[ps1] = SS();
@@ -55,6 +61,7 @@ public:
     whit2 = warehouse.find(ps2);
 
     int n_left = twoL;
+    int n_left_rev = 0;
 
     while (ps1 > s1) {
       char* prevps1 = ps1--;
@@ -65,37 +72,63 @@ public:
       SSIT prevv2beg = whit2->second.begin();
       SSIT prevv2end = whit2->second.end();
 
-      MPIT new_whit1 = warehouse.find(ps1);
-      MPIT new_whit2 = warehouse.find(ps2);
+      new_whit1 = warehouse.find(ps1);
+      new_whit2 = warehouse.find(ps2);
       bool new_whit = new_whit1 == warehouse.end();
 
       SS set1 = SS(); set1.clear();
       SS set2 = SS(); set2.clear();
 
       for (SSIT it=prevv1beg; it != prevv1end; ++it ) {
-        add_to_the_vec( string(ploop21,n_left) + *it);
+        add_to_the_vec(string(ploop21,n_left) + *it);
         if (new_whit) {
-          set2.insert( string(c3+1,2) + *it);
+          set2.insert(string(c3+1,2) + *it);
+          if (do_debug) cout << "[" << (string(c3+1,2) + *it) << "]=>set2\n";
         }
       }
+
       for (SSIT it=prevv2beg; it!= prevv2end; ++it ) {
-        add_to_the_vec( string(ploop12,n_left) + *it);
+        add_to_the_vec(string(ploop12,n_left) + *it);
         if (new_whit) {
-          set1.insert( string(c3,2) + *it);
+          set1.insert(string(c3,2) + *it);
+          if (do_debug) cout << "[" << (string(c3,2) + *it) << "]=>set1\n";
         }
       }
 
       if (new_whit) {
+
+        n_left_rev += 2;
+        --ploop12_rev;
+        --ploop21_rev;
+
+        set2.insert(string(ploop21_rev, n_left_rev));
+        if (do_debug) cout << "[" << string(ploop21_rev, n_left_rev) << "]=>set2\n";
+
+        set1.insert(string(ploop12_rev, n_left_rev));
+        if (do_debug) cout << "[" << string(ploop12_rev, n_left_rev) << "]=>set1\n";
+
         warehouse[ps1] = set1;
         warehouse[ps2] = set2;
+        whit1 = warehouse.find(ps1);
+        whit2 = warehouse.find(ps2);
+      } else {
+        whit1 = new_whit1;
+        whit2 = new_whit2;
       }
-      whit1 = new_whit1;
-      whit2 = new_whit2;
 
       ++ploop12;
       ++ploop21;
       n_left -= 2;
     }
+#   if 1
+    for (SSIT it=whit1->second.begin(); it != whit1->second.end(); ++it ) {
+      add_to_the_vec(*it);
+    }
+
+    for (SSIT it=whit2->second.begin(); it != whit2->second.end(); ++it ) {
+      add_to_the_vec(*it);
+    }
+#   endif
 
   } // Gridland.sub_solve(...)
 
@@ -113,9 +146,15 @@ public:
     VSIT tvend = the_vec.end();
     int glcount = 1;
     for (VSIT vsit = the_vec.begin() + 1; vsit != tvend; ++vsit) {
+      if (do_debug) {
+        cout << "[" << *lastit << "]=lastit;[";
+      }
       if (*vsit > *lastit) {
         ++glcount;
         lastit = vsit;
+      }
+      if (do_debug) {
+        cout << *vsit << "]=vsit;[" << glcount << "]=glcount\n";
       }
     }
     return glcount;
