@@ -109,12 +109,6 @@ ostream& operator<<(ostream& out, const Htring& htr) {
 
 typedef set<Htring, HtringCompare> Hset;
 typedef Hset::iterator HsetIT;
-#if 0
-typedef set<string> SS;
-typedef SS::iterator SSIT;
-typedef vector<string> VS;
-typedef VS::iterator VSIT;
-#endif
 typedef map<char*, Hset> MP;
 typedef MP::iterator MPIT;
 
@@ -129,7 +123,8 @@ public:
   ~Gridland() { }
 
   //////////////////////////////////////////////////////////////////////
-  // Append current string, plus its reverse, to Hset the_set
+  // Append current string to Hset the_set
+  // - check the reverse versions later
   //////////////////////////////////////////////////////////////////////
   void add_to_the_set(Htring htr) {
     //cout << htr << " added\n";
@@ -247,32 +242,17 @@ public:
     HsetIT thend = the_set.end();
 
     for (HsetIT it = the_set.begin(); it != thend; ++it) {
+
+      // Create Htring with reversed string, try to find it in the_set
       if (the_set.find(Htring(*it, (char*)0, 0, true)) == thend) {
+
+        // If reversed Htring is not in the set, increment the count
         ++glcount;
       }
     }
 
     return glcount;
 
-#   if 0
-    sort(the_vec.begin(), the_vec.end());
-    VSIT lastit = the_vec.begin();
-    VSIT tvend = the_vec.end();
-    int glcount = 1;
-    for (VSIT vsit = the_vec.begin() + 1; vsit != tvend; ++vsit) {
-      if (do_debug) {
-        ;//cout << "[" << *lastit << "]=lastit;[";
-      }
-      if (*vsit > *lastit) {
-        ++glcount;
-        lastit = vsit;
-      }
-      if (do_debug) {
-        ;//cout << *vsit << "]=vsit;[" << glcount << "]=glcount\n";
-      }
-    }
-    return glcount;
-#   endif
   } // int Gridland.solve(...)
 
 }; // class Gridland
